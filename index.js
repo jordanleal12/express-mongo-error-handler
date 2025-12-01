@@ -10,14 +10,53 @@ const errorHandler = (err, req, res, next) => {
     message: err.message,
     stack: err.stack,
   });
+  
+// ------------------------------------------------------------------------------------------------
+// EXPRESS ERRORS
+//-------------------------------------------------------------------------------------------------
+
+  /* Catch SyntaxError from invalid JSON caught by JSON parsing middleware. Check for 400 and 'body'
+  in error so we don't catch other SyntaxErrors by mistake */
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid JSON payload in request',
+      errors: ['The request body JSON is invalid and could not be parsed'],
+    });
+  }
+
+  // Request body data is too large (default limit is 100kb)
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({
+      success: false,
+      message: 'JSON payload too large',
+      errors: ['The request body data exceeds the maximum size limit'],
+    });
+  }
+
+  // Catch error thrown when decoding invalid/malformed URI components (e.g. in query params)
+  if (err instanceof URIError) {
+    return res.status(400).json({
+      success: false,
+      message: 'Malformed URI',
+      errors: ['The request URL contains invalid or malformed URI components'],
+    });
+  }
+
+// ------------------------------------------------------------------------------------------------
+// MONGODB/MONGOOSE ERRORS
+//-------------------------------------------------------------------------------------------------
 
   // Catch MongoDB validation errors
   if (err.name === 'ValidationError') {
     return res.status(400).json({
       success: false,
       message: 'Schema validation failed',
-      // Map over each error to return array of error messages
-      errors: Object.values(err.errors).map((e) => e.message),
+      // Map over each error to return array of error objects with field and message
+      errors: Object.values(err.errors).map((e) => ({
+        field: e.path,
+        message: e.message,
+      })),
     });
   }
 
@@ -28,7 +67,10 @@ const errorHandler = (err, req, res, next) => {
     return res.status(409).json({
       success: false,
       message: 'Duplicate key violation',
-      errors: fields.map((field) => `User with field: ${field} already exists`),
+      errors: fields.map((field) => ({ 
+        field,
+        message: `Record with field: ${field} already exists` 
+      })),
     });
   }
 
@@ -37,16 +79,75 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({
       success: false,
       // err.value returns invalid value, err.path returns object path
-      message: `Cast error: value (${err.value}) is not valid for ${err.path}`,
-      errors: [err.message],
+      message: 'Invalid object ID',
+      errors: [{ 
+        field: err.path, 
+        message: `Value (${err.value}) is not valid for ${err.path}`, 
+      }],
     });
   }
+
+  // Catch error thrown by Mongoose when trying to access a record that doesn't exist
+  if (err.name === 'DocumentNotFoundError') {
+    return res.status(404).json({
+      success: false,
+      message: 'Requested resource not found',
+      errors: ['The record being accessed does not exist in the database'],
+    })
+  }
+
+  // Catch errors thrown when trying to add an undefined field with strict option enabled
+  if (err.name === 'StrictModeError') {
+    return res.status(400).json({
+      success: false,
+      message: 'Field not defined in schema',
+      errors: [{
+        field: err.path,
+        message: `The field '${err.path}' does not exist in the schema`,
+      }]
+    })
+  }
+
+  // Catch error thrown when trying to modify a record that was modified concurrently
+  if (err.name === 'VersionError') {
+    return res.status(409).json({
+      success: false,
+      message: 'Concurrent modification error',
+      errors: [{
+        field: '_v',
+        message: 'The record being modified has been concurrently modified. Refresh and try again.',
+      }]
+    })
+  }
+
+  // Catch error thrown when trying to save the same document multiple times in parallel
+  if (err.name === 'ParallelSaveError') {
+    return res.status(409).json({
+      success: false,
+      message: 'Parallel save error',
+      errors: ['The same document cannot be saved multiple times in parallel'],
+    });
+  }
+
+  // Catch error thrown when Mongoose cannot connect to MongoDB server
+  if (err.name === 'MongooseServerSelectionError' || err.name === 'MongoNetworkError') {
+    return res.status(503).json({
+      success: false,
+      message: 'Database connection error',
+      errors: ['Unable to connect to MongoDB database server. Please try again later.'],
+    });
+  }
+
+// ------------------------------------------------------------------------------------------------
+// JWT ERRORS
+//-------------------------------------------------------------------------------------------------
 
   // JWT Invalid Token Error
   if (err.name === 'JsonWebTokenError') {
     return res.status(401).json({
       success: false,
-      message: 'Token is invalid. Please log in again.',
+      message: 'Invalid token',
+      errors: ['Provided token is invalid. Please log in again.'],
     });
   }
 
@@ -54,24 +155,39 @@ const errorHandler = (err, req, res, next) => {
   if (err.name === 'TokenExpiredError') {
     return res.status(401).json({
       success: false,
-      message: 'Your session has expired. Please log in again to refresh.',
+      message: 'Expired token',
+      errors: ['Your session has expired. Please log in again to refresh.'],
     });
   }
 
-  // Custom Errors for Friendship model validations
-  if (err.name === 'InvalidUserIdError') {
-    return res.status(400).json({
+  // Catch error thrown when JWT token is valid but not active yet (nbf claim)
+  if (err.name === 'NotBeforeError') {
+    return res.status(401).json({
       success: false,
-      message: 'One or both user IDs are provided are invalid.',
+      message: 'Token not active',
+      errors: ['The token has yet to be activated. Please try again later.'],
     });
   }
 
-  if (err.name === 'SelfFriendError') {
+// ------------------------------------------------------------------------------------------------
+// ZOD ERRORS
+//-------------------------------------------------------------------------------------------------
+
+  // Zod validation errors
+  if (err.name === 'ZodError') {
     return res.status(400).json({
       success: false,
-      message: 'A user cannot send a friend request to themselves.',
+      message: 'Data validation failed',
+      errors: err.issues.map((issue) => ({
+        field: issue.path.join('.'), // Path is an array by default
+        message: issue.message,
+      })),
     });
   }
+
+// ------------------------------------------------------------------------------------------------
+// CUSTOM APP ERRORS
+//-------------------------------------------------------------------------------------------------
 
   /* Custom application errors for raising new errors or reusable custom errors
   normal error objects don't have statusCode property, that's attached before calling next */
@@ -79,13 +195,18 @@ const errorHandler = (err, req, res, next) => {
     return res.status(err.statusCode).json({
       success: false,
       message: err.message,
+      errors: err.errors || [err.message],
     });
   }
 
-  // Catch-all for any other errors
+// ------------------------------------------------------------------------------------------------
+// CATCH-ALL FOR UNCAUGHT ERRORS
+//-------------------------------------------------------------------------------------------------
+
   return res.status(500).json({
     success: false,
-    message: 'An unexpected error occurred. Please try again later.',
+    message: 'Unexpected error.',
+    errors: ['An unexpected error occurred. Please try again later.'],
   });
 };
 
