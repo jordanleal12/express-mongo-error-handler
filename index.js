@@ -1,5 +1,27 @@
 // Centralized error-handling middleware to catch and respond to errors in all routes
 
+/** 
+ * express-mongo-error-handler
+ * ==============================
+ * Create a configurable error-handling middleware for use with Express.js, designed for the 
+ * backend of MERN applications.
+ * 
+ * Why use this middleware:
+ * - Provides default error handling for common express API setups (Express, Mongoose, JWT, Zod)
+ * - Prevents leaking of stack traces and sensitive data to clients in production
+ * - Consistent response format structure ensures easy front end integration
+ * - Works with custom errors, http-errors package, Zod, etc.
+ * - Configurable logging and stack trace exposure with environment based defaults
+ * - Uses console.error by default but allows custom logger function
+ * 
+ * Installation: npm install express-mongo-error-handler
+ * 
+ * @param {Object} options - Configuration options object
+ * @param {boolean} [options.logErrors=notProduction] - Option to log error details to logger
+ * @param {boolean} [options.exposeStack=false] - Option to expose stack traces in error logging
+ * @param {Function} [options.logger=console.error] - Accepts custom logger function for error logging
+ * @returns {Function} Express error-handling middleware (err, req, res, next)
+*/
 const createErrorHandler = (options = {}) => {
   // Check if in development or test environment
   const notProduction = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
@@ -23,9 +45,10 @@ const createErrorHandler = (options = {}) => {
         ...(exposeStack && err.stack ? { stack: err.stack } : {})
       });
     }
-  // ------------------------------------------------------------------------------------------------
-  // EXPRESS ERRORS
-  //-------------------------------------------------------------------------------------------------
+
+    // --------------------------------------------------------------------------------------------
+    // EXPRESS ERRORS
+    //---------------------------------------------------------------------------------------------
 
     /* Catch SyntaxError from invalid JSON caught by JSON parsing middleware. Check for 400 and 'body'
     in error so we don't catch other SyntaxErrors by mistake */
@@ -55,9 +78,9 @@ const createErrorHandler = (options = {}) => {
       });
     }
 
-  // ------------------------------------------------------------------------------------------------
-  // MONGODB/MONGOOSE ERRORS
-  //-------------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------
+    // MONGODB/MONGOOSE ERRORS
+    //---------------------------------------------------------------------------------------------
 
     // Catch MongoDB validation errors
     if (err.name === 'ValidationError') {
@@ -150,9 +173,9 @@ const createErrorHandler = (options = {}) => {
       });
     }
 
-  // ------------------------------------------------------------------------------------------------
-  // JWT ERRORS
-  //-------------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------
+    // JWT ERRORS
+    //---------------------------------------------------------------------------------------------
 
     // JWT Invalid Token Error
     if (err.name === 'JsonWebTokenError') {
@@ -181,9 +204,9 @@ const createErrorHandler = (options = {}) => {
       });
     }
 
-  // ------------------------------------------------------------------------------------------------
-  // ZOD ERRORS
-  //-------------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------
+    // ZOD ERRORS
+    //---------------------------------------------------------------------------------------------
 
     // Zod validation errors
     if (err.name === 'ZodError') {
@@ -197,9 +220,9 @@ const createErrorHandler = (options = {}) => {
       });
     }
 
-  // ------------------------------------------------------------------------------------------------
-  // CUSTOM APP ERRORS
-  //-------------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------
+    // CUSTOM APP ERRORS
+    //---------------------------------------------------------------------------------------------
 
     /* Custom application errors for raising new errors or reusable custom errors
     normal error objects don't have statusCode property, that's attached before calling next */
@@ -211,9 +234,9 @@ const createErrorHandler = (options = {}) => {
       });
     }
 
-  // ------------------------------------------------------------------------------------------------
-  // CATCH-ALL FOR UNCAUGHT ERRORS
-  //-------------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------
+    // CATCH-ALL FOR UNCAUGHT ERRORS
+    //---------------------------------------------------------------------------------------------
 
     return res.status(500).json({
       success: false,
