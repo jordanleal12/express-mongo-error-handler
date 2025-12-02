@@ -3,6 +3,14 @@
   "version": "1.0.0",
   "description": "Error handling middleware for MERN backend applications using Express, MongoDB and JWT.",
   "main": "index.js",
+  "files": [
+    "index.js",
+    "LICENSE",
+    "README.md",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+    "package.json"
+  ],
   "directories": {
     "test": "test"
   },
