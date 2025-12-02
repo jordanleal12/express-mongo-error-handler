@@ -348,4 +348,51 @@ describe("createErrorHandler error handling middleware tests", () => {
       });
     });
   });
+
+  // ----------------------------------------------------------------------------------------------
+  // JWT ERROR HANDLING TESTS
+  //-----------------------------------------------------------------------------------------------
+
+  describe("JWT Errors Are Handled Correctly", () => {
+    beforeEach(() => {
+      errorHandler = createErrorHandler({ logErrors: false });
+    });
+
+    test("should catch JsonWebTokenError", () => {
+      // Mock JsonWebTokenError so we don't have to import jsonwebtoken
+      const err = { name: "JsonWebTokenError", message: "jwt malformed" };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(401);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Invalid token",
+        errors: ["Provided token is invalid. Please log in again."],
+      });
+    });
+
+    test("should catch TokenExpiredError", () => {
+      const err = { name: "TokenExpiredError", message: "jwt expired" };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(401);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Expired token",
+        errors: ["Your session has expired. Please log in again to refresh."],
+      });
+    });
+
+    test("should catch NotBeforeError", () => {
+      const err = { name: "NotBeforeError", message: "jwt not active" };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(401);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Token not active",
+        errors: ["The token has yet to be activated. Please try again later."],
+      });
+    });
+  });
 });
