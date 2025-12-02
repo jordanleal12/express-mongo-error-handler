@@ -241,7 +241,7 @@ describe("createErrorHandler error handling middleware tests", () => {
       expect(mockRes.jsonData).toEqual({
         success: false,
         message: "Duplicate key violation",
-        errors: [{ field: "email", message: "Record with field: email already exists" }],
+        errors: [{ field: "email", message: "Record with field 'email' already exists" }],
       });
     });
 

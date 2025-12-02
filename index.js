@@ -1,11 +1,11 @@
 // Centralized error-handling middleware to catch and respond to errors in all routes
 
-/** 
+/**
  * express-mongo-error-handler
  * ==============================
- * Create a configurable error-handling middleware for use with Express.js, designed for the 
+ * Create a configurable error-handling middleware for use with Express.js, designed for the
  * backend of MERN applications.
- * 
+ *
  * Why use this middleware:
  * - Provides default error handling for common express API setups (Express, Mongoose, JWT, Zod)
  * - Prevents leaking of stack traces and sensitive data to clients in production
@@ -13,36 +13,32 @@
  * - Works with custom errors, http-errors package, Zod, etc.
  * - Configurable logging and stack trace exposure with environment based defaults
  * - Uses console.error by default but allows custom logger function
- * 
+ *
  * Installation: npm install express-mongo-error-handler
- * 
+ *
  * @param {Object} options - Configuration options object
  * @param {boolean} [options.logErrors=notProduction] - Option to log error details to logger
  * @param {boolean} [options.exposeStack=false] - Option to expose stack traces in error logging
  * @param {Function} [options.logger=console.error] - Accepts custom logger function for error logging
  * @returns {Function} Express error-handling middleware (err, req, res, next)
-*/
+ */
 const createErrorHandler = (options = {}) => {
   // Check if in development or test environment
-  const notProduction = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+  const notProduction = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
 
   // Set default options with destructuring for configuration
-  const { 
-    logErrors = notProduction, 
-    exposeStack = false, 
-    logger = console.error 
-  } = options;
+  const { logErrors = notProduction, exposeStack = false, logger = console.error } = options;
 
   // Return configured middleware function
   return (err, req, res, next) => {
     // Log full error on server for debugging, don't expose potentially sensitive info to client
     if (logErrors) {
-      logger('The following error occurred:', {
+      logger("The following error occurred:", {
         name: err.name,
         code: err.code,
         message: err.message,
         // Add stack trace to log if available and exposeStack set to true
-        ...(exposeStack && err.stack ? { stack: err.stack } : {})
+        ...(exposeStack && err.stack ? { stack: err.stack } : {}),
       });
     }
 
@@ -52,20 +48,20 @@ const createErrorHandler = (options = {}) => {
 
     /* Catch SyntaxError from invalid JSON caught by JSON parsing middleware. Check for 400 and 'body'
     in error so we don't catch other SyntaxErrors by mistake */
-    if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid JSON payload in request',
-        errors: ['The request body JSON is invalid and could not be parsed'],
+        message: "Invalid JSON payload in request",
+        errors: ["The request body JSON is invalid and could not be parsed"],
       });
     }
 
     // Request body data is too large (default limit is 100kb)
-    if (err.type === 'entity.too.large') {
+    if (err.type === "entity.too.large") {
       return res.status(413).json({
         success: false,
-        message: 'JSON payload too large',
-        errors: ['The request body data exceeds the maximum size limit'],
+        message: "JSON payload too large",
+        errors: ["The request body data exceeds the maximum size limit"],
       });
     }
 
@@ -73,8 +69,8 @@ const createErrorHandler = (options = {}) => {
     if (err instanceof URIError) {
       return res.status(400).json({
         success: false,
-        message: 'Malformed URI',
-        errors: ['The request URL contains invalid or malformed URI components'],
+        message: "Malformed URI",
+        errors: ["The request URL contains invalid or malformed URI components"],
       });
     }
 
@@ -83,10 +79,10 @@ const createErrorHandler = (options = {}) => {
     //---------------------------------------------------------------------------------------------
 
     // Catch MongoDB validation errors
-    if (err.name === 'ValidationError') {
+    if (err.name === "ValidationError") {
       return res.status(400).json({
         success: false,
-        message: 'Schema validation failed',
+        message: "Schema validation failed",
         // Map over each error to return array of error objects with field and message
         errors: Object.values(err.errors).map((e) => ({
           field: e.path,
@@ -101,75 +97,82 @@ const createErrorHandler = (options = {}) => {
       const fields = Object.keys(err.keyPattern);
       return res.status(409).json({
         success: false,
-        message: 'Duplicate key violation',
-        errors: fields.map((field) => ({ 
+        message: "Duplicate key violation",
+        errors: fields.map((field) => ({
           field,
-          message: `Record with field: ${field} already exists` 
+          message: `Record with field '${field}' already exists`,
         })),
       });
     }
 
     // Catch MongoDB cast errors (when invalid ObjectId is used)
-    if (err.name === 'CastError') {
+    if (err.name === "CastError") {
       return res.status(400).json({
         success: false,
         // err.value returns invalid value, err.path returns object path
-        message: 'Invalid object ID',
-        errors: [{ 
-          field: err.path, 
-          message: `Value (${err.value}) is not valid for ${err.path}`, 
-        }],
+        message: "Invalid object ID",
+        errors: [
+          {
+            field: err.path,
+            message: `Value (${err.value}) is not valid for ${err.path}`,
+          },
+        ],
       });
     }
 
     // Catch error thrown by Mongoose when trying to access a record that doesn't exist
-    if (err.name === 'DocumentNotFoundError') {
+    if (err.name === "DocumentNotFoundError") {
       return res.status(404).json({
         success: false,
-        message: 'Requested resource not found',
-        errors: ['The record being accessed does not exist in the database'],
-      })
+        message: "Requested resource not found",
+        errors: ["The record being accessed does not exist in the database"],
+      });
     }
 
     // Catch errors thrown when trying to add an undefined field with strict option enabled
-    if (err.name === 'StrictModeError') {
+    if (err.name === "StrictModeError") {
       return res.status(400).json({
         success: false,
-        message: 'Field not defined in schema',
-        errors: [{
-          field: err.path,
-          message: `The field '${err.path}' does not exist in the schema`,
-        }]
-      })
+        message: "Field not defined in schema",
+        errors: [
+          {
+            field: err.path,
+            message: `The field '${err.path}' does not exist in the schema`,
+          },
+        ],
+      });
     }
 
     // Catch error thrown when trying to modify a record that was modified concurrently
-    if (err.name === 'VersionError') {
+    if (err.name === "VersionError") {
       return res.status(409).json({
         success: false,
-        message: 'Concurrent modification error',
-        errors: [{
-          field: '_v',
-          message: 'The record being modified has been concurrently modified. Refresh and try again.',
-        }]
-      })
+        message: "Concurrent modification error",
+        errors: [
+          {
+            field: "_v",
+            message:
+              "The record being modified has been concurrently modified. Refresh and try again.",
+          },
+        ],
+      });
     }
 
     // Catch error thrown when trying to save the same document multiple times in parallel
-    if (err.name === 'ParallelSaveError') {
+    if (err.name === "ParallelSaveError") {
       return res.status(409).json({
         success: false,
-        message: 'Parallel save error',
-        errors: ['The same document cannot be saved multiple times in parallel'],
+        message: "Parallel save error",
+        errors: ["The same document cannot be saved multiple times in parallel"],
       });
     }
 
     // Catch error thrown when Mongoose cannot connect to MongoDB server
-    if (err.name === 'MongooseServerSelectionError' || err.name === 'MongoNetworkError') {
+    if (err.name === "MongooseServerSelectionError" || err.name === "MongoNetworkError") {
       return res.status(503).json({
         success: false,
-        message: 'Database connection error',
-        errors: ['Unable to connect to MongoDB database server. Please try again later.'],
+        message: "Database connection error",
+        errors: ["Unable to connect to MongoDB database server. Please try again later."],
       });
     }
 
@@ -178,29 +181,29 @@ const createErrorHandler = (options = {}) => {
     //---------------------------------------------------------------------------------------------
 
     // JWT Invalid Token Error
-    if (err.name === 'JsonWebTokenError') {
+    if (err.name === "JsonWebTokenError") {
       return res.status(401).json({
         success: false,
-        message: 'Invalid token',
-        errors: ['Provided token is invalid. Please log in again.'],
+        message: "Invalid token",
+        errors: ["Provided token is invalid. Please log in again."],
       });
     }
 
     // JWT Token Expired Error
-    if (err.name === 'TokenExpiredError') {
+    if (err.name === "TokenExpiredError") {
       return res.status(401).json({
         success: false,
-        message: 'Expired token',
-        errors: ['Your session has expired. Please log in again to refresh.'],
+        message: "Expired token",
+        errors: ["Your session has expired. Please log in again to refresh."],
       });
     }
 
     // Catch error thrown when JWT token is valid but not active yet (nbf claim)
-    if (err.name === 'NotBeforeError') {
+    if (err.name === "NotBeforeError") {
       return res.status(401).json({
         success: false,
-        message: 'Token not active',
-        errors: ['The token has yet to be activated. Please try again later.'],
+        message: "Token not active",
+        errors: ["The token has yet to be activated. Please try again later."],
       });
     }
 
@@ -209,12 +212,12 @@ const createErrorHandler = (options = {}) => {
     //---------------------------------------------------------------------------------------------
 
     // Zod validation errors
-    if (err.name === 'ZodError') {
+    if (err.name === "ZodError") {
       return res.status(400).json({
         success: false,
-        message: 'Data validation failed',
+        message: "Data validation failed",
         errors: err.issues.map((issue) => ({
-          field: issue.path.join('.'), // Path is an array by default
+          field: issue.path.join("."), // Path is an array by default
           message: issue.message,
         })),
       });
@@ -240,8 +243,8 @@ const createErrorHandler = (options = {}) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Unexpected error.',
-      errors: ['An unexpected error occurred. Please try again later.'],
+      message: "Unexpected error.",
+      errors: ["An unexpected error occurred. Please try again later."],
     });
   };
 };
