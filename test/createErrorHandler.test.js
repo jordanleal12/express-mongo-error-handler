@@ -395,4 +395,68 @@ describe("createErrorHandler error handling middleware tests", () => {
       });
     });
   });
+
+  // ----------------------------------------------------------------------------------------------
+  // ZOD ERROR HANDLING TESTS
+  //-----------------------------------------------------------------------------------------------
+
+  describe("Zod Errors Are Handled Correctly", () => {
+    beforeEach(() => {
+      errorHandler = createErrorHandler({ logErrors: false });
+    });
+
+    test("should catch basic ZodError with single issue", () => {
+      const err = {
+        name: "ZodError",
+        issues: [{ path: ["email"], message: "Invalid email format" }],
+      };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(400);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Data validation failed",
+        errors: [{ field: "email", message: "Invalid email format" }],
+      });
+    });
+
+    test("should catch ZodError with multiple issues", () => {
+      const err = {
+        name: "ZodError",
+        issues: [
+          { path: ["email"], message: "Invalid email format" },
+          {
+            path: ["password"],
+            message: "Password must be at least 8 characters",
+          },
+          { path: ["age"], message: "Age must be a positive number" },
+        ],
+      };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(400);
+      expect(mockRes.jsonData.errors).toHaveLength(3);
+    });
+
+    test("should catch ZodError with nested path", () => {
+      const err = {
+        name: "ZodError",
+        issues: [{ path: ["user", "profile", "email"], message: "Invalid email" }],
+      };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      // Check multiple paths are concatted with dots
+      expect(mockRes.jsonData.errors[0].field).toBe("user.profile.email");
+    });
+
+    test("should catch ZodError with empty path", () => {
+      const err = {
+        name: "ZodError",
+        issues: [{ path: [], message: "Invalid input" }],
+      };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.jsonData.errors[0].field).toBe("");
+    });
+  });
 });
