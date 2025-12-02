@@ -201,4 +201,151 @@ describe("createErrorHandler error handling middleware tests", () => {
       });
     });
   });
+
+  // ----------------------------------------------------------------------------------------------
+  // MONGOOSE/MONGODB ERROR HANDLING TESTS
+  //-----------------------------------------------------------------------------------------------
+
+  describe("Mongoose/MongoDB Errors Are Handled Correctly", () => {
+    beforeEach(() => {
+      errorHandler = createErrorHandler({ logErrors: false });
+    });
+
+    test("should catch mongoose ValidationError", () => {
+      // Mock Mongoose ValidationError so we don't have to import Mongoose
+      const err = {
+        name: "ValidationError",
+        errors: {
+          email: { path: "email", message: "Email is required" },
+          name: { path: "name", message: "Name must be at least 2 characters" },
+        },
+      };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(400);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Schema validation failed",
+        errors: [
+          { field: "email", message: "Email is required" },
+          { field: "name", message: "Name must be at least 2 characters" },
+        ],
+      });
+    });
+
+    test("should catch mongoose duplicate key error", () => {
+      const err = { code: 11000, keyPattern: { email: 1 } };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(409);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Duplicate key violation",
+        errors: [{ field: "email", message: "Record with field: email already exists" }],
+      });
+    });
+
+    test("should catch mongoose duplicate key error with multiple fields", () => {
+      const err = { code: 11000, keyPattern: { email: 1, username: 1 } };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(409);
+      expect(mockRes.jsonData.errors).toHaveLength(2);
+    });
+
+    test("should catch mongoose CastError", () => {
+      const err = { name: "CastError", path: "_id", value: "invalid-id" };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(400);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Invalid object ID",
+        errors: [{ field: "_id", message: "Value (invalid-id) is not valid for _id" }],
+      });
+    });
+
+    test("should catch mongoose DocumentNotFoundError", () => {
+      const err = { name: "DocumentNotFoundError" };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(404);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Requested resource not found",
+        errors: ["The record being accessed does not exist in the database"],
+      });
+    });
+
+    test("should catch mongoose StrictModeError", () => {
+      const err = { name: "StrictModeError", path: "unknownField" };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(400);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Field not defined in schema",
+        errors: [
+          {
+            field: "unknownField",
+            message: "The field 'unknownField' does not exist in the schema",
+          },
+        ],
+      });
+    });
+
+    test("should catch mongoose VersionError", () => {
+      const err = { name: "VersionError" };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(409);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Concurrent modification error",
+        errors: [
+          {
+            field: "_v",
+            message:
+              "The record being modified has been concurrently modified. Refresh and try again.",
+          },
+        ],
+      });
+    });
+
+    test("should catch mongoose ParallelSaveError", () => {
+      const err = { name: "ParallelSaveError" };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(409);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Parallel save error",
+        errors: ["The same document cannot be saved multiple times in parallel"],
+      });
+    });
+
+    test("should catch mongoose MongooseServerSelectionError", () => {
+      const err = { name: "MongooseServerSelectionError" };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(503);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Database connection error",
+        errors: ["Unable to connect to MongoDB database server. Please try again later."],
+      });
+    });
+
+    test("should catch mongoose MongoNetworkError", () => {
+      const err = { name: "MongoNetworkError" };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(503);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Database connection error",
+        errors: ["Unable to connect to MongoDB database server. Please try again later."],
+      });
+    });
+  });
 });
