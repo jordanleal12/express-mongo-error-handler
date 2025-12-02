@@ -497,4 +497,42 @@ describe("createErrorHandler error handling middleware tests", () => {
       });
     });
   });
+
+  // ----------------------------------------------------------------------------------------------
+  // CATCH-ALL ERROR HANDLING TESTS
+  //-----------------------------------------------------------------------------------------------
+
+  describe("Catch-All Error Handler Catches Unexpected Errors", () => {
+    beforeEach(() => {
+      errorHandler = createErrorHandler({ logErrors: false });
+    });
+
+    test("should catch generic Error with no name, code or specific type", () => {
+      const err = new Error("Something went wrong");
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(500);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Unexpected error.",
+        errors: ["An unexpected error occurred. Please try again later."],
+      });
+    });
+
+    test("should catch errors with unknown error types", () => {
+      const err = { unknownProperty: "value" };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(500);
+      expect(mockRes.jsonData.success).toBe(false);
+    });
+
+    test("should catch null/undefined errors", () => {
+      const err = { name: null, message: undefined };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(500);
+      expect(mockRes.jsonData.success).toBe(false);
+    });
+  });
 });
