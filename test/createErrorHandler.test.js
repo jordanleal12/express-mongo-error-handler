@@ -136,4 +136,69 @@ describe("createErrorHandler error handling middleware tests", () => {
       process.env.NODE_ENV = originalEnv;
     });
   });
+
+  // ----------------------------------------------------------------------------------------------
+  // EXPRESS ERROR HANDLING TESTS
+  //-----------------------------------------------------------------------------------------------
+
+  describe("Express Errors Are Handled Correctly", () => {
+    beforeEach(() => {
+      // Disable logging so we don't have to mock console every time
+      errorHandler = createErrorHandler({ logErrors: false });
+    });
+
+    test("should catch SyntaxError caused by malformed JSON", () => {
+      const err = new SyntaxError("Unexpected token"); // Simulate SyntaxError with 400 & json body
+      err.status = 400;
+      err.body = "{ invalid json }";
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(400);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Invalid JSON payload in request",
+        errors: ["The request body JSON is invalid and could not be parsed"],
+      });
+    });
+
+    test("should not catch SyntaxError without 400 status or json body", () => {
+      const err = new SyntaxError("Some other syntax error");
+      err.status = 400; // Test with status but no json body
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(500); // Should be caught by catch-all
+
+      mockRes = createMockRes(); // Create fresh response mock
+      err.status = null; // Set status to null and add body
+      err.body = "{ invalid json }";
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(500); // Should be caught by catch-all
+    });
+
+    test("should catch 'entity.too.large' error", () => {
+      const err = new Error("Request entity too large");
+      err.type = "entity.too.large";
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(413);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "JSON payload too large",
+        errors: ["The request body data exceeds the maximum size limit"],
+      });
+    });
+
+    test("should catch URIError", () => {
+      const err = new URIError("URI malformed");
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(400);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Malformed URI",
+        errors: ["The request URL contains invalid or malformed URI components"],
+      });
+    });
+  });
 });
