@@ -459,4 +459,42 @@ describe("createErrorHandler error handling middleware tests", () => {
       expect(mockRes.jsonData.errors[0].field).toBe("");
     });
   });
+
+  // ----------------------------------------------------------------------------------------------
+  // CUSTOM APPLICATION ERROR HANDLING TESTS
+  //-----------------------------------------------------------------------------------------------
+
+  describe("Custom Application Errors Should Be Handled Correctly", () => {
+    beforeEach(() => {
+      errorHandler = createErrorHandler({ logErrors: false });
+    });
+
+    test("should handle basic custom error with statusCode and message", () => {
+      const err = { statusCode: 403, message: "Access denied" };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(403);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Access denied",
+        errors: ["Access denied"],
+      });
+    });
+
+    test("should handle custom error with statusCode, message and errors array", () => {
+      const err = {
+        statusCode: 422,
+        message: "Validation failed",
+        errors: ["Field A is invalid", "Field B is required"],
+      };
+
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(422);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Validation failed",
+        errors: ["Field A is invalid", "Field B is required"],
+      });
+    });
+  });
 });
