@@ -83,12 +83,11 @@ app.use(errorHandler);
 #### Always log errors with stack traces exposed
 
 ```javascript
-app.use(
-  createErrorHandler({
-    logErrors: true, // Default True in 'test' and 'development' environments, False in 'production'
-    exposeStack: true, // Default value is False
-  })
-);
+const errorHandler = createErrorHandler({
+  logErrors: true, // Default True in 'test' and 'development' environments, False in 'production'
+  exposeStack: true, // Default value is False
+});
+app.use(errorHandler);
 ```
 
 #### Usage with logging packages
@@ -102,7 +101,8 @@ const logger = winston.createLogger({
   /* config */
 });
 
-app.use(createErrorHandler({ logger: logger.error.bind(logger) }));
+const errorHandler = createErrorHandler({ logger: logger.error.bind(logger) });
+app.use(errorHandler);
 ```
 
 **Pino:**
@@ -115,7 +115,8 @@ const logger = pino({
 });
 
 // Swap order for message and data
-app.use(createErrorHandler({ logger: (msg, data) => logger.error(data, msg) }));
+const errorHandler = createErrorHandler({ logger: (msg, data) => logger.error(data, msg) });
+app.use(errorHandler);
 ```
 
 **Bunyan:**
@@ -128,17 +129,15 @@ const logger = bunyan.createLogger({
 });
 
 // Swap order for message and data
-app.use(createErrorHandler({ logger: (msg, data) => logger.error(data, msg) }));
+const errorHandler = createErrorHandler({ logger: (msg, data) => logger.error(data, msg) });
+app.use(errorHandler);
 ```
 
 #### Disable all logging
 
 ```javascript
-app.use(
-  createErrorHandler({
-    logErrors: false,
-  })
-);
+const errorHandler = createErrorHandler({ logErrors: false });
+app.use(errorHandler);
 ```
 
 ---
@@ -161,7 +160,10 @@ Many mongoose error messages are objects with a `field` and `message` property:
 {
   "success": false,
   "message": "Duplicate key violation",
-  "errors": [{ "field": "email", "message": "Record with field 'email' already exists" }]
+  "errors": [
+    { "field": "email", "message": "Record with field 'email' already exists" },
+    { "field": "username", "message": "Record with field 'username' already exists" }
+  ]
 }
 ```
 
@@ -243,7 +245,7 @@ app.get("/api/users/:id", async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) {
-      throw new AppError("User not found", 404);
+      throw new CustomError("User not found", 404);
     }
     res.json(user);
   } catch (error) {
