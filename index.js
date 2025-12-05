@@ -13,6 +13,7 @@
  * - Works with custom errors, http-errors package, Zod, etc.
  * - Configurable logging and stack trace exposure with environment based defaults
  * - Uses console.error by default but allows custom logger function
+ * - Accepts array of custom error handlers for additional flexibility
  *
  * Installation: npm install express-mongo-error-handler
  *
@@ -20,14 +21,20 @@
  * @param {boolean} [options.logErrors=notProduction] - Option to log error details to logger
  * @param {boolean} [options.exposeStack=false] - Option to expose stack traces in error logging
  * @param {Function} [options.logger=console.error] - Accepts custom logger function for error logging
+ * @param {Array<Function>} [options.customHandlers=[]] - Array of custom error handler functions
  * @returns {Function} Express error-handling middleware (err, req, res, next)
  */
 const createErrorHandler = (options = {}) => {
-  // Check if in development or test environment
+  // Check for development or test environment (false without environment variables for safety)
   const notProduction = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
 
   // Set default options with destructuring for configuration
-  const { logErrors = notProduction, exposeStack = false, logger = console.error } = options;
+  const {
+    logErrors = notProduction,
+    exposeStack = false,
+    logger = console.error,
+    customHandlers = [],
+  } = options;
 
   // Return configured middleware function
   return (err, req, res, next) => {
@@ -40,6 +47,12 @@ const createErrorHandler = (options = {}) => {
         // Add stack trace to log if available and exposeStack set to true
         ...(exposeStack && err.stack ? { stack: err.stack } : {}),
       });
+    }
+
+    // Run error through any custom error handlers first
+    for (const handler of customHandlers) {
+      const result = handler(err, req, res);
+      if (result) return result; // Will return response and exit if custom handler catches error
     }
 
     // --------------------------------------------------------------------------------------------
