@@ -1,23 +1,26 @@
-# Express Mongo Error Handler &middot; [![npm version](https://img.shields.io/npm/v/express-mongo-error-handler.svg)](https://www.npmjs.com/package/express-mongo-error-handler) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+# :pushpin: Express Mongo Error Handler
+
+[![npm version](https://img.shields.io/npm/v/express-mongo-error-handler.svg)](https://www.npmjs.com/package/express-mongo-error-handler)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A lightweight, configurable error handling middleware, designed specifically for MERN backends. Simple and easy to use, catch and format all expected errors into consistent and client friendly responses!
 
-Preventing accidental exposure of stack traces right out of the box, this middleware package catches and formats errors from Express, Mongoose/MongoDB, JWT, ZOD and custom app errors. Customizable configurations allow extremely easy to set options for console logging, using external logging packages (e.g Winston, Pino etc.) and logging stack traces.
+Preventing accidental exposure of stack traces right out of the box, this middleware package catches and formats errors from Express, Mongoose/MongoDB, JWT, ZOD and custom app errors. Customizable configurations allow extremely easy to set options for console logging, using external logging packages (e.g Winston, Pino etc.), logging stack traces, and incorporating your own custom error handlers.
 
-## Contents
+## :clipboard: Contents
 
 ### In This Document
 
-1. [Features](#features)
-2. [Installation](#installation)
-3. [Configuration Options](#configuration-options)
-4. [Usage](#usage)
-5. [Response Format](#response-format)
-6. [Handled Error Types](#handled-error-types)
-7. [Custom Error Usage](#custom-error-usage)
-8. [Unhandled Errors](#unhandled-errors)
-9. [Testing](#testing)
-10. [Links](#links)
+1. [:jigsaw: Features](#features)
+2. [:package: Installation](#installation)
+3. [:gear: Configuration Options](#configuration)
+4. [:computer: Usage](#usage)
+5. [:outbox_tray: Response Format](#response-format)
+6. [:warning: Handled Error Types](#handled-errors)
+7. [:writing_hand: Custom Error Usage](#custom-error)
+8. [:rotating_light: Unhandled Errors](#unhandled-errors)
+9. [:test_tube: Testing](#testing)
+10. [:link: Links](#links)
 
 ### Other Documents
 
@@ -27,18 +30,19 @@ Preventing accidental exposure of stack traces right out of the box, this middle
 
 ---
 
-## Features
+## :jigsaw: Features {#features}
 
-- 🛡️ **Prevents stack trace leaks** - Errors are formatted into client friendly stack free messages, with optional logging of stack traces.
-- 📦 **Zero configuration** - Sensible default configurations with logging based on current environment
-- 🔧 **Easy Configuration** - Set logging, stack trace exposure, and custom logger options
-- 🎯 **Consistent responses** - Uses the popular response format (success, message, errors), allowing for easy client integration
-- 🌐 **Environment-aware** - Automatically adjusts behavior based on `NODE_ENV` environment variables
-- ✅ **Comprehensive coverage** - Handles Express, Mongoose, JWT, and Zod errors
+- :lock: **Prevents stack trace leaks** - Errors are formatted into client friendly stack free messages, with optional logging of stack traces.
+- :package: **Zero configuration** - Sensible default configurations with logging based on current environment
+- :toolbox: **Easy Configuration** - Set logging, stack trace exposure, and custom logger options
+- :dart: **Consistent responses** - Uses the popular response format (success, message, errors), allowing for easy client integration
+- :globe_with_meridians: **Environment-aware** - Automatically adjusts behavior based on `NODE_ENV` environment variables
+- :white_check_mark: **Comprehensive coverage** - Handles Express, Mongoose, JWT, and Zod errors
+- :handshake: **Accepts custom error-handlers** - Provide your own error handlers in an array for seamless integration
 
 ---
 
-## Installation
+## :package: Installation {#installation}
 
 ```bash
 npm install express-mongo-error-handler
@@ -46,17 +50,18 @@ npm install express-mongo-error-handler
 
 ---
 
-## Configuration Options
+## :gear: Configuration Options {#configuration}
 
-| Option        | Type       | Default                                      | Description                                                |
-| ------------- | ---------- | -------------------------------------------- | ---------------------------------------------------------- |
-| `logErrors`   | `Boolean`  | `True` in development, `False` in production | `True` enables error logging                               |
-| `exposeStack` | `Boolean`  | `false`                                      | `True` includes stack traces in logs                       |
-| `logger`      | `Function` | `console.error`                              | Enables use of custom logging packages (examples in usage) |
+| Option           | Type              | Default                                       | Description                                                      |
+| ---------------- | ----------------- | --------------------------------------------- | ---------------------------------------------------------------- |
+| `logErrors`      | `Boolean`         | `true` in test/development, `false` otherwise | `true` enables error logging                                     |
+| `exposeStack`    | `Boolean`         | `false`                                       | `true` includes stack traces in logs                             |
+| `logger`         | `Function`        | `console.error`                               | Enables use of custom logging packages (examples in usage)       |
+| `customHandlers` | `Array<Function>` | `[]`                                          | Enables integration of custom error handlers (examples in usage) |
 
 ---
 
-## Usage
+## :computer: Usage {#usage}
 
 ### Default Usage
 
@@ -80,21 +85,21 @@ app.use(errorHandler);
 
 ### Custom Usage
 
-#### Always log errors with stack traces exposed
+#### Always Log Errors With Stack Traces Exposed
 
-```javascript
+```js
 const errorHandler = createErrorHandler({
-  logErrors: true, // Default True in 'test' and 'development' environments, False in 'production'
-  exposeStack: true, // Default value is False
+  logErrors: true, // Default true in 'test' and 'development' environments, false in 'production'
+  exposeStack: true, // Default value is false
 });
 app.use(errorHandler);
 ```
 
-#### Usage with logging packages
+#### Usage With Logging Packages
 
 **Winston:**
 
-```javascript
+```js
 import winston from "winston";
 
 const logger = winston.createLogger({
@@ -106,6 +111,8 @@ app.use(errorHandler);
 ```
 
 **Pino:**
+
+Pino expects reversed order of message and data
 
 ```js
 import pino from "pino";
@@ -121,6 +128,8 @@ app.use(errorHandler);
 
 **Bunyan:**
 
+Bunyan expects reversed order of message and data
+
 ```js
 import bunyan from "bunyan";
 
@@ -133,16 +142,50 @@ const errorHandler = createErrorHandler({ logger: (msg, data) => logger.error(da
 app.use(errorHandler);
 ```
 
-#### Disable all logging
+#### Disable All Logging
 
-```javascript
+```js
 const errorHandler = createErrorHandler({ logErrors: false });
+app.use(errorHandler);
+```
+
+#### Integrate Custom Error Handlers
+
+Custom handlers passed to middleware will run before built-in error handling
+
+```js
+// Array of custom error handler functions for adding additional package compatibility
+const customHandlers = [
+  (err, req, res) => {
+    // Example 'stripe' package error handler
+    if (err.type === "StripeCardError") {
+      return res.status(402).json({
+        success: false,
+        message: "Payment failed",
+        errors: [err.message],
+      });
+    }
+  },
+  // Each 'if' block can be a separate function or wrapped in a single function as desired
+  (err, req, res) => {
+    // Example 'multer' package error handler
+    if (err.name === "MulterError") {
+      return res.status(400).json({
+        success: false,
+        message: "File upload error",
+        errors: [err.message],
+      });
+    }
+  },
+  /* Additional error handlers as required */
+];
+let errorHandler = createErrorHandler({ customHandlers }); // Pass handlers to config
 app.use(errorHandler);
 ```
 
 ---
 
-## Response Format
+## :outbox_tray: Response Format {#response-format}
 
 All errors are formatted into a consistent, client-friendly structure. Errors are always in an array:
 
@@ -169,7 +212,7 @@ Many mongoose error messages are objects with a `field` and `message` property:
 
 ---
 
-## Handled Error Types
+## :warning: Handled Error Types {#handled-errors}
 
 ### Express Errors
 
@@ -211,7 +254,7 @@ Many mongoose error messages are objects with a `field` and `message` property:
 
 Errors with a `statusCode` property are handled automatically. Example:
 
-```javascript
+```js
 // Creating custom error in route
 const error = new Error("Resource not found");
 error.statusCode = 404;
@@ -226,11 +269,11 @@ Any missed or unhandled errors are still caught with generic catch all, returnin
 
 ---
 
-## Custom Error Usage
+## :writing_hand: Custom Error Usage {#custom-error}
 
 Any errors thrown with a `statusCode` property will be caught and handled. Example:
 
-```javascript
+```js
 // Creation of custom error class. Must contain statusCode property to be handled appropriately
 class CustomError extends Error {
   constructor(message, statusCode, errors = []) {
@@ -256,7 +299,7 @@ app.get("/api/users/:id", async (req, res, next) => {
 
 ---
 
-## Unhandled Errors
+## :rotating_light: Unhandled Errors {#unhandled-errors}
 
 Some errors are not runtime issues and are deliberately ignored. Catching these could mask issues
 that should be caught and fixed in development, such as:
@@ -268,7 +311,7 @@ that should be caught and fixed in development, such as:
 
 ---
 
-## Testing
+## :test_tube: Testing {#testing}
 
 ```bash
 npm run test
@@ -276,7 +319,7 @@ npm run test
 
 ---
 
-## Links
+## :link: Links {#links}
 
 - [GitHub Repository](https://github.com/jordanleal12/express-mongo-error-handler)
 - [NPM Package](https://www.npmjs.com/package/express-mongo-error-handler)
