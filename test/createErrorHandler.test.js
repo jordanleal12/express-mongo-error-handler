@@ -551,7 +551,8 @@ describe("createErrorHandler error handling middleware tests", () => {
             errors: [err.message],
           });
         }
-
+      },
+      (err, req, res) => {
         if (err.name === "MulterError") {
           return res.status(400).json({
             success: false,
