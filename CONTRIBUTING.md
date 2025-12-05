@@ -14,6 +14,30 @@ Thank you for considering contributing to my project! This is my first NPM packa
    - How: Explain how you have implemented the feature
    - Dependencies: List any new dependencies and why you used them
 
+Example:
+
+```md
+## WHAT
+
+Added feature that allows for integration of custom error handlers with the createErrorHandler middleware function, and updated tests and readme documentation to reflect new feature
+
+## WHY
+
+To allow users to have easy integration of their own custom error handlers (e.g. to catch errors thrown by third party libraries such as stripe or multer), while still applying our secure by default configuration options to the newly integrated error handlers.
+
+## HOW
+
+- Added `customHandlers` parameter to `createErrorHandler` that accepts an array of custom error handler functions and updated jsdoc description
+- Added `for` loop to `createErrorHandler` to iterate over each error handler function in `customHandlers` array, exiting early if error is caught by any
+- Updated readme documentation to include example usage
+- Updated `createErrorHandler.test.js` with new unit tests to test functionality works as expected
+- Additional small changes to readme
+
+## NEW DEPENDENCIES
+
+- N/A
+```
+
 ## Questions?
 
 Email <16386@coderacademy.edu.au> for any questions on contributions
