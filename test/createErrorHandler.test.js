@@ -535,4 +535,77 @@ describe("createErrorHandler error handling middleware tests", () => {
       expect(mockRes.jsonData.success).toBe(false);
     });
   });
+
+  // ----------------------------------------------------------------------------------------------
+  // CUSTOM HANDLER TESTS
+  //-----------------------------------------------------------------------------------------------
+
+  describe("Custom Handlers Are Executed Correctly", () => {
+    // Create customHandler array to be passed to createErrorHandler
+    const customHandlers = [
+      (err, req, res) => {
+        if (err.type === "StripeCardError") {
+          return res.status(402).json({
+            success: false,
+            message: "Payment failed",
+            errors: [err.message],
+          });
+        }
+
+        if (err.name === "MulterError") {
+          return res.status(400).json({
+            success: false,
+            message: "File upload error",
+            errors: [err.message],
+          });
+        }
+      },
+    ];
+    // Create error handler with custom handlers to be used in tests
+    let errorHandler = createErrorHandler({ logErrors: false, customHandlers });
+
+    test("should catch and respond to errors in customHandlers array", () => {
+      // Simulate StripeCardError (not in built-in handlers, only in customHandlers)
+      const err = { type: "StripeCardError", message: "Your card's expiration year is invalid." };
+      errorHandler(err, mockReq, mockRes, mockNext); // Call error handler with stripe error
+      expect(mockRes.statusCode).toBe(402);
+      expect(mockRes.jsonData).toEqual({
+        success: false,
+        message: "Payment failed",
+        errors: ["Your card's expiration year is invalid."],
+      });
+    });
+
+    test("should catch error with default handlers when not caught by custom handlers", () => {
+      const err = {
+        name: "ValidationError",
+        errors: { email: { path: "email", message: "Required" } },
+      };
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(400); // Caught by built-in ValidationError handler
+      expect(mockRes.jsonData.message).toBe("Schema validation failed");
+    });
+
+    test("should pass error to subsequent custom handlers when not caught by previous", () => {
+      // Should be caught by second custom handler in array (MulterError)
+      const err = { name: "MulterError", message: "File too large" };
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.jsonData.message).toBe("File upload error");
+    });
+
+    test("should be caught by catch-all when no custom or built-in handlers match", () => {
+      const err = { name: "UnknownError" };
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(500); // Caught by catch-all
+      expect(mockRes.jsonData.message).toBe("Unexpected error.");
+    });
+
+    test("should work with empty customHandlers array", () => {
+      // Create fresh error handler with no custom handlers
+      errorHandler = createErrorHandler({ logErrors: false, customHandlers: [] });
+      const err = new Error("Test error");
+      errorHandler(err, mockReq, mockRes, mockNext);
+      expect(mockRes.statusCode).toBe(500); // Caught by catch-all
+    });
+  });
 });
