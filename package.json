@@ -1,6 +1,6 @@
 {
   "name": "express-mongo-error-handler",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Error handling middleware for MERN backend applications using Express, MongoDB and JWT.",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
