@@ -11,26 +11,26 @@ Preventing accidental exposure of stack traces right out of the box, this middle
 
 ### In This Document
 
-1. [:jigsaw: Features](#features)
-2. [:package: Installation](#installation)
-3. [:gear: Configuration Options](#configuration)
-4. [:computer: Usage](#usage)
-5. [:outbox_tray: Response Format](#response-format)
-6. [:warning: Handled Error Types](#handled-errors)
-7. [:writing_hand: Custom Error Usage](#custom-error)
-8. [:rotating_light: Unhandled Errors](#unhandled-errors)
-9. [:test_tube: Testing](#testing)
-10. [:link: Links](#links)
+1. [:jigsaw: Features](#jigsaw-features)
+2. [:package: Installation](#package-installation)
+3. [:gear: Configuration Options](#gear-configuration-options)
+4. [:computer: Usage](#computer-usage)
+5. [:outbox_tray: Response Format](#outbox_tray-response-format)
+6. [:warning: Handled Error Types](#warning-handled-error-types)
+7. [:writing_hand: Custom Error Usage](#writing_hand-custom-error-usage)
+8. [:rotating_light: Unhandled Errors](#rotating_light-unhandled-errors)
+9. [:test_tube: Testing](#test_tube-testing)
+10. [:link: Links](#link-links)
 
 ### Other Documents
 
-1. [SECURITY](/SECURITY.md)
-2. [LICENSE](/LICENSE)
-3. [CONTRIBUTING](/CONTRIBUTING.md)
+1. [:shield: SECURITY](/SECURITY.md)
+2. [:scroll: LICENSE](/LICENSE)
+3. [:busts_in_silhouette: CONTRIBUTING](/CONTRIBUTING.md)
 
 ---
 
-## :jigsaw: Features {#features}
+## :jigsaw: Features
 
 - :lock: **Prevents stack trace leaks** - Errors are formatted into client friendly stack free messages, with optional logging of stack traces.
 - :package: **Zero configuration** - Sensible default configurations with logging based on current environment
@@ -42,7 +42,7 @@ Preventing accidental exposure of stack traces right out of the box, this middle
 
 ---
 
-## :package: Installation {#installation}
+## :package: Installation
 
 ```bash
 npm install express-mongo-error-handler
@@ -50,7 +50,7 @@ npm install express-mongo-error-handler
 
 ---
 
-## :gear: Configuration Options {#configuration}
+## :gear: Configuration Options
 
 | Option           | Type              | Default                                       | Description                                                      |
 | ---------------- | ----------------- | --------------------------------------------- | ---------------------------------------------------------------- |
@@ -61,7 +61,7 @@ npm install express-mongo-error-handler
 
 ---
 
-## :computer: Usage {#usage}
+## :computer: Usage
 
 ### Default Usage
 
@@ -185,7 +185,7 @@ app.use(errorHandler);
 
 ---
 
-## :outbox_tray: Response Format {#response-format}
+## :outbox_tray: Response Format
 
 All errors are formatted into a consistent, client-friendly structure. Errors are always in an array:
 
@@ -212,7 +212,7 @@ Many mongoose error messages are objects with a `field` and `message` property:
 
 ---
 
-## :warning: Handled Error Types {#handled-errors}
+## :warning: Handled Error Types
 
 ### Express Errors
 
@@ -269,7 +269,7 @@ Any missed or unhandled errors are still caught with generic catch all, returnin
 
 ---
 
-## :writing_hand: Custom Error Usage {#custom-error}
+## :writing_hand: Custom Error Usage
 
 Any errors thrown with a `statusCode` property will be caught and handled. Example:
 
@@ -299,7 +299,7 @@ app.get("/api/users/:id", async (req, res, next) => {
 
 ---
 
-## :rotating_light: Unhandled Errors {#unhandled-errors}
+## :rotating_light: Unhandled Errors
 
 Some errors are not runtime issues and are deliberately ignored. Catching these could mask issues
 that should be caught and fixed in development, such as:
@@ -311,7 +311,7 @@ that should be caught and fixed in development, such as:
 
 ---
 
-## :test_tube: Testing {#testing}
+## :test_tube: Testing
 
 ```bash
 npm run test
@@ -319,7 +319,7 @@ npm run test
 
 ---
 
-## :link: Links {#links}
+## :link: Links
 
 - [GitHub Repository](https://github.com/jordanleal12/express-mongo-error-handler)
 - [NPM Package](https://www.npmjs.com/package/express-mongo-error-handler)
