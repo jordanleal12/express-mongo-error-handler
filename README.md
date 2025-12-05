@@ -1,7 +1,6 @@
 # :pushpin: Express Mongo Error Handler
 
-[![npm version](https://img.shields.io/npm/v/express-mongo-error-handler.svg)](https://www.npmjs.com/package/express-mongo-error-handler)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![npm version](https://img.shields.io/npm/v/express-mongo-error-handler.svg)](https://www.npmjs.com/package/express-mongo-error-handler) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) ![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue) ![ESM](https://img.shields.io/badge/ESM-Supported-green) ![CommonJS](https://img.shields.io/badge/CommonJS-Supported-green)
 
 A lightweight, configurable error handling middleware, designed specifically for MERN backends. Simple and easy to use, catch and format all expected errors into consistent and client friendly responses!
 
@@ -39,6 +38,7 @@ Preventing accidental exposure of stack traces right out of the box, this middle
 - :globe_with_meridians: **Environment-aware** - Automatically adjusts behavior based on `NODE_ENV` environment variables
 - :white_check_mark: **Comprehensive coverage** - Handles Express, Mongoose, JWT, and Zod errors
 - :handshake: **Accepts custom error-handlers** - Provide your own error handlers in an array for seamless integration
+- :mechanical_arm: **ESM, CommonJS and TypeScript support** - Supports ESM and CJS imports, with TS type support
 
 ---
 
@@ -67,7 +67,9 @@ npm install express-mongo-error-handler
 
 ```js
 import express from "express";
-import createErrorHandler from "express-mongo-error-handler";
+import createErrorHandler from "express-mongo-error-handler"; // ESM
+// OR
+const createErrorHandler = require("express-mongo-error-handler"); // CJS
 
 const app = express();
 
